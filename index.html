@@ -97,8 +97,8 @@
       </div>
     </div>
 
-    <!-- メイン出題 3D Canvas -->
-    <div id="questionCanvasContainer" class="relative w-44 h-44 sm:w-52 sm:h-52 mx-auto bg-gradient-to-b from-sky-50 to-pink-50/60 rounded-2xl border-4 border-dashed border-pink-200 shadow-inner mb-3 overflow-hidden flex items-center justify-center">
+    <!-- メイン出題 3D Canvas (背景を視認性の高いパステルカラーに調整) -->
+    <div id="questionCanvasContainer" class="relative w-44 h-44 sm:w-52 sm:h-52 mx-auto bg-gradient-to-b from-sky-100 to-indigo-100 rounded-2xl border-4 border-dashed border-sky-300 shadow-inner mb-3 overflow-hidden flex items-center justify-center">
     </div>
 
     <!-- 選択肢 2x2 グリッド -->
@@ -219,7 +219,6 @@
       problemNumber = 1;
       document.getElementById('score-text').innerText = completedCount;
 
-      // 画面が表示された直後にキャンバスサイズを確定させて出題作成
       setTimeout(() => {
         if (qRenderer && qCamera) {
           const container = document.getElementById('questionCanvasContainer');
@@ -249,10 +248,11 @@
       qRenderer.setSize(w, h);
       container.appendChild(qRenderer.domElement);
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.88);
+      // ライトの強度を微調整して白飛びを抑制
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
       qScene.add(ambientLight);
 
-      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.75);
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.55);
       dirLight1.position.set(5, 8, 5);
       qScene.add(dirLight1);
 
@@ -320,7 +320,8 @@
     function createOptionCard(shapeType, container) {
       const card = document.createElement('div');
       card.dataset.shape = shapeType;
-      card.className = `option-card relative w-full aspect-square bg-white border-2 border-pink-100 hover:border-pink-300 rounded-2xl flex flex-col items-center justify-between transition-all duration-150 shadow-sm overflow-hidden p-1.5`;
+      // 選択肢カードの背景色を淡いパステルパープル/ブルー系（#f0f9ff）に変更
+      card.className = `option-card relative w-full aspect-square bg-sky-50 border-2 border-sky-200 hover:border-pink-300 rounded-2xl flex flex-col items-center justify-between transition-all duration-150 shadow-sm overflow-hidden p-1.5`;
 
       const optCanvas = document.createElement('canvas');
       optCanvas.className = 'w-full h-full block rounded-xl';
@@ -346,9 +347,9 @@
       controls.enableZoom = false;
       controls.enablePan = false;
 
-      const ambientLight = new THREE.AmbientLight(0xffffff, 0.88);
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.75);
       scene.add(ambientLight);
-      const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.55);
       dirLight.position.set(4, 6, 4);
       scene.add(dirLight);
 
