@@ -139,14 +139,13 @@
   <script>
     const SHAPE_KEYS = ['CYLINDER', 'CUBOID', 'CUBE', 'SPHERE'];
 
-    // はっきりした視認性の高いパステルカラー群（白抜き）
     const PASTEL_COLORS = [
-      0xffa6c9, // パステルピンク
-      0x70d6ff, // パステルスカイブルー
-      0x7678ed, // パステルパープル
-      0xffd166, // パステルイエロー
-      0x06d6a0, // パステルミント
-      0xff9f1c  // パステルオレンジ
+      0xffa6c9,
+      0x70d6ff,
+      0x7678ed,
+      0xffd166,
+      0x06d6a0,
+      0xff9f1c
     ];
 
     let currentTargetShape = '';
@@ -154,7 +153,6 @@
     let problemNumber = 1;
     let isAnswering = true;
 
-    // 効果音（Web Audio API）
     const AudioCtx = window.AudioContext || window.webkitAudioContext;
     let audioCtx = null;
 
@@ -203,7 +201,6 @@
       } catch (e) {}
     }
 
-    // 画面切替
     function hideAllScreens() {
       document.getElementById('screen-start').classList.add('hidden');
       document.getElementById('screen-main').classList.add('hidden');
@@ -221,16 +218,27 @@
       completedCount = 0;
       problemNumber = 1;
       document.getElementById('score-text').innerText = completedCount;
-      generateExercise();
+
+      // 画面が表示された直後にキャンバスサイズを確定させて出題作成
+      setTimeout(() => {
+        if (qRenderer && qCamera) {
+          const container = document.getElementById('questionCanvasContainer');
+          const w = container.clientWidth || 200;
+          const h = container.clientHeight || 200;
+          qCamera.aspect = w / h;
+          qCamera.updateProjectionMatrix();
+          qRenderer.setSize(w, h);
+        }
+        generateExercise();
+      }, 50);
     }
 
-    // Three.js 処理
     let qScene, qCamera, qRenderer, qControls, qMeshGroup;
 
     function initMainCanvas() {
       const container = document.getElementById('questionCanvasContainer');
-      const w = container.clientWidth;
-      const h = container.clientHeight;
+      const w = container.clientWidth || 200;
+      const h = container.clientHeight || 200;
 
       qScene = new THREE.Scene();
       qCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
@@ -265,27 +273,27 @@
 
       if (shapeType === 'CUBE') {
         const subtype = Math.floor(Math.random() * 3);
-        if (subtype === 0) geometry = new THREE.BoxGeometry(0.65, 0.65, 0.65); // サイコロ
+        if (subtype === 0) geometry = new THREE.BoxGeometry(0.65, 0.65, 0.65);
         else if (subtype === 1) geometry = new THREE.BoxGeometry(1.1, 1.1, 1.1);
         else geometry = new THREE.BoxGeometry(1.35, 1.35, 1.35);
 
       } else if (shapeType === 'CUBOID') {
         const subtype = Math.floor(Math.random() * 4);
-        if (subtype === 0) geometry = new THREE.BoxGeometry(0.5, 1.5, 0.5); // ラップ箱風ロング
-        else if (subtype === 1) geometry = new THREE.BoxGeometry(0.8, 0.4, 1.3); // 消しゴム風
-        else if (subtype === 2) geometry = new THREE.BoxGeometry(0.7, 1.4, 0.7); // 牛乳パック風
+        if (subtype === 0) geometry = new THREE.BoxGeometry(0.5, 1.5, 0.5);
+        else if (subtype === 1) geometry = new THREE.BoxGeometry(0.8, 0.4, 1.3);
+        else if (subtype === 2) geometry = new THREE.BoxGeometry(0.7, 1.4, 0.7);
         else geometry = new THREE.BoxGeometry(1.4, 0.6, 0.8);
 
       } else if (shapeType === 'CYLINDER') {
         const cylinderType = Math.floor(Math.random() * 4);
-        if (cylinderType === 0) geometry = new THREE.CylinderGeometry(0.28, 0.28, 1.6, 32); // ラップ芯風細長
-        else if (cylinderType === 1) geometry = new THREE.CylinderGeometry(0.95, 0.95, 0.3, 32); // 薄型コインフタ
-        else if (cylinderType === 2) geometry = new THREE.CylinderGeometry(0.48, 0.48, 1.3, 32); // 茶筒
+        if (cylinderType === 0) geometry = new THREE.CylinderGeometry(0.28, 0.28, 1.6, 32);
+        else if (cylinderType === 1) geometry = new THREE.CylinderGeometry(0.95, 0.95, 0.3, 32);
+        else if (cylinderType === 2) geometry = new THREE.CylinderGeometry(0.48, 0.48, 1.3, 32);
         else geometry = new THREE.CylinderGeometry(0.7, 0.7, 0.9, 32);
 
       } else if (shapeType === 'SPHERE') {
         const sphereType = Math.floor(Math.random() * 3);
-        if (sphereType === 0) geometry = new THREE.SphereGeometry(0.45, 32, 32); // 小
+        if (sphereType === 0) geometry = new THREE.SphereGeometry(0.45, 32, 32);
         else if (sphereType === 1) geometry = new THREE.SphereGeometry(0.75, 32, 32);
         else geometry = new THREE.SphereGeometry(0.95, 32, 32);
       }
