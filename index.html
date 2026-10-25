@@ -1,0 +1,480 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>小1算数 かたちあそび学習ツール</title>
+  <meta name="description" content="小学1年生の算数「かたちあそび」を3Dモデルで学べるデジタル教材です。">
+  <meta name="category" content="Education">
+  <!-- Tailwind CSS -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts -->
+  <link href="https://fonts.googleapis.com/css2?family=Kiwi+Maru:wght@400;500;700&display=swap" rel="stylesheet">
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+  <!-- Three.js & OrbitControls -->
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/three@0.128.0/examples/js/controls/OrbitControls.js"></script>
+  <style>
+    body {
+      font-family: 'Kiwi Maru', serif, sans-serif;
+      background-color: #fce7f3;
+      user-select: none;
+      -webkit-user-select: none;
+      touch-action: manipulation;
+    }
+    ruby rt {
+      font-size: 0.65em;
+      color: #7c3aed;
+      font-weight: bold;
+    }
+    .bounce-pop {
+      animation: bouncePop 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+    }
+    @keyframes bouncePop {
+      0% { transform: scale(0.8); opacity: 0; }
+      100% { transform: scale(1); opacity: 1; }
+    }
+    canvas {
+      cursor: grab;
+      touch-action: none;
+    }
+    canvas:active {
+      cursor: grabbing;
+    }
+  </style>
+</head>
+<body class="min-h-screen flex flex-col justify-between text-slate-800 p-2 sm:p-4 bg-gradient-to-b from-pink-100 via-purple-50 to-pink-100">
+
+  <!-- ヘッダー -->
+  <header class="w-full max-w-2xl mx-auto text-center my-2">
+    <h1 class="text-2xl sm:text-3xl font-bold text-pink-600 tracking-wide flex items-center justify-center gap-2">
+      <span>🦄</span>
+      <span><ruby>算数<rt>さんすう</rt></ruby> <ruby>形<rt>かたち</rt></ruby>あそびマスター</span>
+      <span>✨</span>
+    </h1>
+  </header>
+
+  <!-- ================= 画面1: タイトル・スタート画面 ================= -->
+  <main id="screen-start" class="w-full max-w-2xl mx-auto bg-white/95 rounded-3xl shadow-xl border-4 border-pink-200 p-6 relative overflow-hidden flex-1 flex flex-col justify-between text-center">
+    <div class="my-auto py-6">
+      <div class="text-6xl mb-4 animate-bounce">✨🧩✨</div>
+      <h2 class="text-3xl sm:text-4xl font-extrabold text-pink-600 mb-2">
+        <ruby>形<rt>かたち</rt></ruby>の <ruby>仲間<rt>なかま</rt></ruby>わけ
+      </h2>
+      <p class="text-purple-600 text-sm sm:text-base font-bold mb-8">
+        <ruby>上<rt>うえ</rt></ruby>の <ruby>立体<rt>りったい</rt></ruby>と <ruby>同<rt>おな</rt></ruby>じ <ruby>形<rt>かたち</rt></ruby>を えらべるかな？<br>3Dモデルを まわして じっくり かんさつしよう！
+      </p>
+
+      <button onclick="startStudy()" class="w-full max-w-sm py-4 bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white font-extrabold text-2xl rounded-2xl shadow-xl border-b-4 border-purple-600 active:scale-95 transition-all">
+        れんしゅうを はじめる！
+      </button>
+    </div>
+    <div class="text-xs font-bold text-pink-400">小学校 1年生 算数「かたちあそび」デジタル教材</div>
+  </main>
+
+  <!-- ================= 画面2: メイン学習画面 ================= -->
+  <main id="screen-main" class="hidden w-full max-w-2xl mx-auto bg-white/95 rounded-3xl shadow-xl border-4 border-pink-200 p-4 sm:p-6 relative overflow-hidden flex-1 flex flex-col justify-between">
+    
+    <!-- ヘッダー情報（問題番号・できた数） -->
+    <div class="flex justify-between items-center border-b-2 border-dashed border-pink-100 pb-2 mb-2">
+      <div class="flex items-center gap-2">
+        <button onclick="showStartScreen()" class="text-xs bg-slate-100 hover:bg-slate-200 text-slate-600 px-3 py-1 rounded-full font-bold">◀ さいしょへ</button>
+        <span class="bg-pink-100 text-pink-600 text-xs sm:text-sm font-bold px-3 py-1 rounded-full" id="problem-count-badge">だい 1 もん</span>
+      </div>
+      <div class="flex items-center gap-4">
+        <div class="text-xs sm:text-sm text-slate-500 font-bold">
+          <ruby>正解<rt>せいかい</rt></ruby>: <span id="score-text" class="text-xl font-black text-pink-600">0</span> / 100点
+        </div>
+      </div>
+    </div>
+
+    <!-- 指導メッセージ -->
+    <div class="bg-pink-50 border border-pink-200 rounded-2xl p-2.5 text-center mb-2">
+      <div class="text-xs font-bold text-pink-600 uppercase tracking-wider mb-0.5">ステップ 1</div>
+      <div class="text-sm sm:text-base font-bold text-slate-700">
+        これと <ruby>同<rt>おな</rt></ruby>じ <ruby>仲間<rt>なかま</rt></ruby>の <ruby>形<rt>かたち</rt></ruby>は どれかな？
+      </div>
+    </div>
+
+    <!-- メイン出題 3D Canvas -->
+    <div id="questionCanvasContainer" class="relative w-44 h-44 sm:w-52 sm:h-52 mx-auto bg-gradient-to-b from-sky-50 to-pink-50/60 rounded-2xl border-4 border-dashed border-pink-200 shadow-inner mb-3 overflow-hidden flex items-center justify-center">
+    </div>
+
+    <!-- 選択肢 2x2 グリッド -->
+    <div class="grid grid-cols-2 gap-3 w-full max-w-md mx-auto" id="optionsContainer">
+    </div>
+
+    <!-- 判定結果メッセージ ＆ つぎへボタン -->
+    <div id="feedback-area" class="mt-2 min-h-[50px] flex flex-col items-center justify-center">
+      <div id="feedback-message" class="hidden text-base sm:text-lg font-bold mb-1"></div>
+      <button id="nextBtn" onclick="generateExercise()" class="hidden w-full max-w-sm py-2.5 bg-gradient-to-r from-pink-400 to-purple-400 text-white font-extrabold text-lg rounded-xl shadow-md border-b-4 border-purple-600 active:scale-95 transition-all">
+        つぎの もんだいへ ➔
+      </button>
+    </div>
+  </main>
+
+  <!-- ================= 画面3: 完了（100点）画面 ================= -->
+  <main id="screen-result" class="hidden w-full max-w-2xl mx-auto bg-white/95 rounded-3xl shadow-xl border-4 border-pink-200 p-6 relative overflow-hidden flex-1 flex flex-col justify-between text-center">
+    <div class="my-auto py-6">
+      <div class="text-6xl mb-3 animate-bounce">👑✨</div>
+      <h2 class="text-2xl sm:text-3xl font-extrabold text-pink-600 mb-2">
+        やったね！<br><ruby>形<rt>かたち</rt></ruby>の はかせだね！
+      </h2>
+      <p class="text-purple-600 font-bold text-lg mb-6">
+        100てん まんてん！<br>ぜんぶ 正解できたね！
+      </p>
+
+      <button onclick="startStudy()" class="w-full max-w-sm py-3.5 bg-gradient-to-r from-emerald-400 to-teal-400 text-white font-extrabold text-xl rounded-2xl shadow-lg border-b-4 border-teal-600 active:scale-95 transition-all">
+        もう一度（いちど） べんきょうする
+      </button>
+    </div>
+  </main>
+
+  <!-- フッター -->
+  <footer class="mt-2 text-center text-xs font-bold text-pink-700/80">
+    <ruby>小学<rt>しょうがく</rt></ruby>1<ruby>年生<rt>ねんせい</rt></ruby>の <ruby>算数<rt>さんすう</rt></ruby>「かたちあそび」<ruby>デジタル教材<rt>けょうざい</rt></ruby>
+  </footer>
+
+  <script>
+    const SHAPE_KEYS = ['CYLINDER', 'CUBOID', 'CUBE', 'SPHERE'];
+
+    // はっきりした視認性の高いパステルカラー群（白抜き）
+    const PASTEL_COLORS = [
+      0xffa6c9, // パステルピンク
+      0x70d6ff, // パステルスカイブルー
+      0x7678ed, // パステルパープル
+      0xffd166, // パステルイエロー
+      0x06d6a0, // パステルミント
+      0xff9f1c  // パステルオレンジ
+    ];
+
+    let currentTargetShape = '';
+    let completedCount = 0;
+    let problemNumber = 1;
+    let isAnswering = true;
+
+    // 効果音（Web Audio API）
+    const AudioCtx = window.AudioContext || window.webkitAudioContext;
+    let audioCtx = null;
+
+    function playSound(type) {
+      try {
+        if (!audioCtx) audioCtx = new AudioCtx();
+        if (audioCtx.state === 'suspended') audioCtx.resume();
+
+        const osc = audioCtx.createOscillator();
+        const gain = audioCtx.createGain();
+        osc.connect(gain);
+        gain.connect(audioCtx.destination);
+        const now = audioCtx.currentTime;
+
+        if (type === 'correct') {
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(523.25, now);
+          osc.frequency.setValueAtTime(659.25, now + 0.08);
+          osc.frequency.setValueAtTime(783.99, now + 0.16);
+          gain.gain.setValueAtTime(0.25, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.45);
+          osc.start(now);
+          osc.stop(now + 0.45);
+        } else if (type === 'wrong') {
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(180, now);
+          osc.frequency.setValueAtTime(130, now + 0.12);
+          gain.gain.setValueAtTime(0.2, now);
+          gain.gain.exponentialRampToValueAtTime(0.001, now + 0.35);
+          osc.start(now);
+          osc.stop(now + 0.35);
+        } else if (type === 'fanfare') {
+          [523.25, 659.25, 783.99, 1046.50].forEach((freq, idx) => {
+            const o = audioCtx.createOscillator();
+            const g = audioCtx.createGain();
+            o.connect(g);
+            g.connect(audioCtx.destination);
+            o.type = 'triangle';
+            o.frequency.value = freq;
+            g.gain.setValueAtTime(0.2, now + idx * 0.12);
+            g.gain.exponentialRampToValueAtTime(0.001, now + idx * 0.12 + 0.4);
+            o.start(now + idx * 0.12);
+            o.stop(now + idx * 0.12 + 0.4);
+          });
+        }
+      } catch (e) {}
+    }
+
+    // 画面切替
+    function hideAllScreens() {
+      document.getElementById('screen-start').classList.add('hidden');
+      document.getElementById('screen-main').classList.add('hidden');
+      document.getElementById('screen-result').classList.add('hidden');
+    }
+
+    function showStartScreen() {
+      hideAllScreens();
+      document.getElementById('screen-start').classList.remove('hidden');
+    }
+
+    function startStudy() {
+      hideAllScreens();
+      document.getElementById('screen-main').classList.remove('hidden');
+      completedCount = 0;
+      problemNumber = 1;
+      document.getElementById('score-text').innerText = completedCount;
+      generateExercise();
+    }
+
+    // Three.js 処理
+    let qScene, qCamera, qRenderer, qControls, qMeshGroup;
+
+    function initMainCanvas() {
+      const container = document.getElementById('questionCanvasContainer');
+      const w = container.clientWidth;
+      const h = container.clientHeight;
+
+      qScene = new THREE.Scene();
+      qCamera = new THREE.PerspectiveCamera(40, w / h, 0.1, 100);
+      qCamera.position.set(0, 2.2, 6.2);
+
+      qRenderer = new THREE.WebGLRenderer({ antialias: true, alpha: true });
+      qRenderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+      qRenderer.setSize(w, h);
+      container.appendChild(qRenderer.domElement);
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.88);
+      qScene.add(ambientLight);
+
+      const dirLight1 = new THREE.DirectionalLight(0xffffff, 0.75);
+      dirLight1.position.set(5, 8, 5);
+      qScene.add(dirLight1);
+
+      qControls = new THREE.OrbitControls(qCamera, qRenderer.domElement);
+      qControls.enableDamping = true;
+      qControls.dampingFactor = 0.1;
+      qControls.enableZoom = false;
+      qControls.enablePan = false;
+
+      qMeshGroup = new THREE.Group();
+      qScene.add(qMeshGroup);
+    }
+
+    function createShapeObject(shapeType) {
+      const group = new THREE.Group();
+      let geometry;
+      const fillColor = PASTEL_COLORS[Math.floor(Math.random() * PASTEL_COLORS.length)];
+
+      if (shapeType === 'CUBE') {
+        const subtype = Math.floor(Math.random() * 3);
+        if (subtype === 0) geometry = new THREE.BoxGeometry(0.65, 0.65, 0.65); // サイコロ
+        else if (subtype === 1) geometry = new THREE.BoxGeometry(1.1, 1.1, 1.1);
+        else geometry = new THREE.BoxGeometry(1.35, 1.35, 1.35);
+
+      } else if (shapeType === 'CUBOID') {
+        const subtype = Math.floor(Math.random() * 4);
+        if (subtype === 0) geometry = new THREE.BoxGeometry(0.5, 1.5, 0.5); // ラップ箱風ロング
+        else if (subtype === 1) geometry = new THREE.BoxGeometry(0.8, 0.4, 1.3); // 消しゴム風
+        else if (subtype === 2) geometry = new THREE.BoxGeometry(0.7, 1.4, 0.7); // 牛乳パック風
+        else geometry = new THREE.BoxGeometry(1.4, 0.6, 0.8);
+
+      } else if (shapeType === 'CYLINDER') {
+        const cylinderType = Math.floor(Math.random() * 4);
+        if (cylinderType === 0) geometry = new THREE.CylinderGeometry(0.28, 0.28, 1.6, 32); // ラップ芯風細長
+        else if (cylinderType === 1) geometry = new THREE.CylinderGeometry(0.95, 0.95, 0.3, 32); // 薄型コインフタ
+        else if (cylinderType === 2) geometry = new THREE.CylinderGeometry(0.48, 0.48, 1.3, 32); // 茶筒
+        else geometry = new THREE.CylinderGeometry(0.7, 0.7, 0.9, 32);
+
+      } else if (shapeType === 'SPHERE') {
+        const sphereType = Math.floor(Math.random() * 3);
+        if (sphereType === 0) geometry = new THREE.SphereGeometry(0.45, 32, 32); // 小
+        else if (sphereType === 1) geometry = new THREE.SphereGeometry(0.75, 32, 32);
+        else geometry = new THREE.SphereGeometry(0.95, 32, 32);
+      }
+
+      const faceMaterial = new THREE.MeshToonMaterial({
+        color: fillColor,
+        polygonOffset: true,
+        polygonOffsetFactor: 1,
+        polygonOffsetUnits: 1
+      });
+      const mesh = new THREE.Mesh(geometry, faceMaterial);
+      group.add(mesh);
+
+      const edges = new THREE.EdgesGeometry(geometry, shapeType === 'CYLINDER' ? 40 : 20);
+      const lineMaterial = new THREE.LineBasicMaterial({ color: 0x475569, linewidth: 2.5 });
+      const lineSegments = new THREE.LineSegments(edges, lineMaterial);
+      group.add(lineSegments);
+
+      return group;
+    }
+
+    const optionObjects = [];
+
+    function createOptionCard(shapeType, container) {
+      const card = document.createElement('div');
+      card.dataset.shape = shapeType;
+      card.className = `option-card relative w-full aspect-square bg-white border-2 border-pink-100 hover:border-pink-300 rounded-2xl flex flex-col items-center justify-between transition-all duration-150 shadow-sm overflow-hidden p-1.5`;
+
+      const optCanvas = document.createElement('canvas');
+      optCanvas.className = 'w-full h-full block rounded-xl';
+      card.appendChild(optCanvas);
+
+      const selectBtn = document.createElement('button');
+      selectBtn.className = 'select-act-btn absolute bottom-2 left-1/2 -translate-x-1/2 w-11/12 py-1.5 bg-gradient-to-r from-pink-400 to-purple-400 hover:from-pink-500 hover:to-purple-500 text-white font-extrabold text-xs sm:text-sm rounded-xl shadow-md border-b-2 border-purple-600 z-10';
+      selectBtn.innerHTML = `<span>これにする</span>`;
+      card.appendChild(selectBtn);
+
+      container.appendChild(card);
+
+      const scene = new THREE.Scene();
+      const camera = new THREE.PerspectiveCamera(40, 1, 0.1, 100);
+      camera.position.set(0, 0.2, 5.0);
+
+      const renderer = new THREE.WebGLRenderer({ canvas: optCanvas, antialias: true, alpha: true });
+      renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
+
+      const controls = new THREE.OrbitControls(camera, renderer.domElement);
+      controls.enableDamping = true;
+      controls.dampingFactor = 0.12;
+      controls.enableZoom = false;
+      controls.enablePan = false;
+
+      const ambientLight = new THREE.AmbientLight(0xffffff, 0.88);
+      scene.add(ambientLight);
+      const dirLight = new THREE.DirectionalLight(0xffffff, 0.75);
+      dirLight.position.set(4, 6, 4);
+      scene.add(dirLight);
+
+      const shapeObj = createShapeObject(shapeType);
+      scene.add(shapeObj);
+
+      optionObjects.push({ renderer, scene, camera, controls, shapeObj, card, selectBtn, shapeType });
+
+      selectBtn.onclick = (e) => {
+        e.stopPropagation();
+        verifyAnswer(shapeType, card);
+      };
+
+      card.onclick = () => {
+        if (controls.state !== -1) return;
+        verifyAnswer(shapeType, card);
+      };
+    }
+
+    function mainRenderLoop() {
+      requestAnimationFrame(mainRenderLoop);
+
+      if (qControls) qControls.update();
+      if (qRenderer && qScene && qCamera) {
+        qRenderer.render(qScene, qCamera);
+      }
+
+      optionObjects.forEach(opt => {
+        if (opt.controls) opt.controls.update();
+        const w = opt.card.clientWidth || 100;
+        const h = opt.card.clientHeight || 100;
+        opt.renderer.setSize(w, h, false);
+        opt.renderer.render(opt.scene, opt.camera);
+      });
+    }
+
+    function shuffle(arr) {
+      return [...arr].sort(() => Math.random() - 0.5);
+    }
+
+    function generateExercise() {
+      isAnswering = true;
+      document.getElementById('nextBtn').classList.add('hidden');
+      const msg = document.getElementById('feedback-message');
+      msg.classList.add('hidden');
+      msg.className = 'hidden text-base sm:text-lg font-bold mb-1';
+
+      document.getElementById('problem-count-badge').innerText = `だい ${problemNumber} もん`;
+
+      currentTargetShape = SHAPE_KEYS[Math.floor(Math.random() * SHAPE_KEYS.length)];
+
+      while (qMeshGroup.children.length > 0) {
+        qMeshGroup.remove(qMeshGroup.children[0]);
+      }
+
+      const qShapeObj = createShapeObject(currentTargetShape);
+      qMeshGroup.add(qShapeObj);
+
+      qCamera.position.set(0, 2.2, 6.2);
+      qControls.reset();
+
+      optionObjects.length = 0;
+      const container = document.getElementById('optionsContainer');
+      container.innerHTML = '';
+
+      const shuffledKeys = shuffle(SHAPE_KEYS);
+      shuffledKeys.forEach(key => createOptionCard(key, container));
+    }
+
+    function verifyAnswer(selectedKey, clickedCard) {
+      if (!isAnswering) return;
+      isAnswering = false;
+
+      const msg = document.getElementById('feedback-message');
+
+      optionObjects.forEach(opt => {
+        if (opt.controls) opt.controls.enabled = false;
+        opt.selectBtn.disabled = true;
+        opt.selectBtn.classList.add('opacity-50', 'pointer-events-none');
+      });
+
+      if (selectedKey === currentTargetShape) {
+        playSound('correct');
+        clickedCard.classList.add('border-emerald-500', 'bg-emerald-50', 'ring-4', 'ring-emerald-200');
+
+        msg.innerHTML = '⭕ <span class="text-emerald-600 font-extrabold">せいかい！ すごいね！</span>';
+        msg.classList.remove('hidden');
+
+        completedCount += 10;
+        document.getElementById('score-text').innerText = completedCount;
+
+        if (completedCount >= 100) {
+          setTimeout(() => {
+            playSound('fanfare');
+            confetti({ particleCount: 100, spread: 80, origin: { y: 0.5 } });
+            hideAllScreens();
+            document.getElementById('screen-result').classList.remove('hidden');
+          }, 600);
+          return;
+        }
+
+      } else {
+        playSound('wrong');
+        clickedCard.classList.add('border-rose-500', 'bg-rose-50');
+
+        optionObjects.forEach(opt => {
+          if (opt.shapeType === currentTargetShape) {
+            opt.card.classList.add('border-emerald-500', 'bg-emerald-50', 'ring-4', 'ring-emerald-200');
+          }
+        });
+
+        msg.innerHTML = '❌ <span class="text-rose-600 font-extrabold">ざんねん！ こっちが 同じ形だよ</span>';
+        msg.classList.remove('hidden');
+      }
+
+      problemNumber++;
+      document.getElementById('nextBtn').classList.remove('hidden');
+    }
+
+    window.onload = () => {
+      initMainCanvas();
+      mainRenderLoop();
+    };
+
+    window.onresize = () => {
+      if (qRenderer && qCamera) {
+        const container = document.getElementById('questionCanvasContainer');
+        const w = container.clientWidth;
+        const h = container.clientHeight;
+        qCamera.aspect = w / h;
+        qCamera.updateProjectionMatrix();
+        qRenderer.setSize(w, h);
+      }
+    };
+  </script>
+</body>
+</html>
